@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Subtitle Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Myanmar:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14110F;
+    --surface:#1D1915;
+    --surface-2:#241F1A;
+    --line:#332C24;
+    --gold:#D9A24B;
+    --gold-dim:#8A6A34;
+    --teal:#4FA8A0;
+    --text:#F2ECE1;
+    --text-muted:#A79C8C;
+    --danger:#E0654B;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 15% -10%, rgba(217,162,75,0.10), transparent 45%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Noto Sans Myanmar', sans-serif;
+    min-height:100vh;
+  }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+  .wrap{ max-width:760px; margin:0 auto; padding:32px 20px 80px; }
+
+  header{ display:flex; align-items:center; gap:14px; margin-bottom:28px; }
+  .reel{ width:38px; height:38px; flex:none; }
+  header h1{ font-size:20px; margin:0; letter-spacing:0.02em; }
+  header p{ margin:2px 0 0; color:var(--text-muted); font-size:13px; }
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:22px;
+    margin-bottom:18px;
+  }
+  .card h2{
+    font-size:14px; margin:0 0 16px; color:var(--gold);
+    text-transform:uppercase; letter-spacing:0.08em; font-family:'JetBrains Mono',monospace; font-weight:600;
+  }
+
+  /* Source tabs */
+  .tabs{ display:flex; gap:8px; margin-bottom:16px; }
+  .tab-btn{
+    flex:1; padding:10px; border-radius:10px; border:1px solid var(--line);
+    background:var(--surface-2); color:var(--text-muted); cursor:pointer; font-size:14px;
+    font-family:inherit;
+  }
+  .tab-btn.active{ border-color:var(--gold-dim); color:var(--gold); background:rgba(217,162,75,0.08); }
+
+  .dropzone{
+    border:1.5px dashed var(--line); border-radius:10px; padding:26px 16px;
+    text-align:center; color:var(--text-muted); cursor:pointer; font-size:14px;
+  }
+  .dropzone.drag{ border-color:var(--gold); color:var(--gold); }
+  .dropzone input{ display:none; }
+  .filename{ margin-top:10px; font-size:13px; color:var(--gold); }
+
+  input[type=text], input[type=url]{
+    width:100%; padding:11px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--surface-2); color:var(--text); font-size:14px; font-family:inherit;
+  }
+  input::placeholder{ color:#6B6153; }
+
+  .lang-grid{ display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  .lang-chip{
+    padding:8px 14px; border-radius:999px; border:1px solid var(--line);
+    background:var(--surface-2); color:var(--text-muted); font-size:13px; cursor:pointer; user-select:none;
+  }
+  .lang-chip.on{ border-color:var(--gold); color:var(--gold); background:rgba(217,162,75,0.10); }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:8px;
+    padding:12px 20px; border-radius:10px; border:none; cursor:pointer;
+    font-size:14px; font-weight:600; font-family:inherit;
+    background:var(--gold); color:#1A1611;
+  }
+  .btn:disabled{ opacity:0.4; cursor:not-allowed; }
+  .btn.ghost{ background:transparent; border:1px solid var(--line); color:var(--text); font-weight:500; }
+  .btn.small{ padding:8px 14px; font-size:13px; }
+  .btn.block{ width:100%; margin-top:16px; }
+
+  /* Timeline / status */
+  .timeline{ position:relative; height:4px; background:var(--line); border-radius:2px; margin:18px 0 10px; }
+  .timeline .fill{ position:absolute; top:0; left:0; height:100%; background:var(--gold); border-radius:2px; transition:width .4s ease; }
+  .timeline .head{ position:absolute; top:-5px; width:14px; height:14px; border-radius:50%; background:var(--gold); box-shadow:0 0 0 4px rgba(217,162,75,0.18); transition:left .4s ease; margin-left:-7px; }
+  .steps{ display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono',monospace; }
+  .steps span.done{ color:var(--gold); }
+  .status-line{ margin-top:12px; font-size:13px; color:var(--text-muted); }
+  .status-line.err{ color:var(--danger); }
+
+  /* Render section */
+  .render-row{ display:flex; gap:10px; align-items:center; margin-bottom:12px; }
+  select{
+    flex:1; padding:11px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--surface-2); color:var(--text); font-size:14px; font-family:inherit;
+  }
+  video{ width:100%; border-radius:10px; margin-top:14px; background:#000; display:none; }
+  .render-status{ font-size:12px; color:var(--text-muted); margin-top:6px; font-family:'JetBrains Mono',monospace; }
+
+  /* SRT rows */
+  .srt-row{ display:flex; gap:8px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line); }
+  .srt-row:last-child{ border-bottom:none; }
+  .srt-lang{ width:64px; flex:none; font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--teal); }
+
+  .hidden{ display:none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="reel" viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="20" stroke="#D9A24B" stroke-width="2.5"/>
+      <circle cx="24" cy="24" r="4.5" fill="#D9A24B"/>
+      <circle cx="24" cy="10" r="3.2" fill="#D9A24B"/>
+      <circle cx="14" cy="18" r="3.2" fill="#D9A24B"/>
+      <circle cx="18" cy="32" r="3.2" fill="#D9A24B"/>
+      <circle cx="30" cy="32" r="3.2" fill="#D9A24B"/>
+      <circle cx="34" cy="18" r="3.2" fill="#D9A24B"/>
+    </svg>
+    <div>
+      <h1>Subtitle Studio</h1>
+      <p>Video တင်ပါ → စာတန်း အလိုအလျောက် ဘာသာပြန်ပြီး ထိုးပေးမည်</p>
+    </div>
+  </header>
+
+  <!-- STEP 1: SOURCE -->
+  <div class="card" id="sourceCard">
+    <h2>Video ရွေးပါ</h2>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="file">File တင်မယ်</button>
+      <button class="tab-btn" data-tab="link">Link ကူးထည့်မယ်</button>
+    </div>
+
+    <div id="fileTab">
+      <label class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept="video/*" />
+        <div id="dropzoneText">Video file ကို ဒီနေရာ click လုပ်ပြီး ရွေးပါ (၅ မိနစ်အောက်)</div>
+      </label>
+      <div class="filename hidden" id="fileNameShow"></div>
+    </div>
+
+    <div id="linkTab" class="hidden">
+      <input type="url" id="linkInput" placeholder="TikTok / RedNote (Xiaohongshu) link ကူးထည့်ပါ" />
+    </div>
+
+    <h2 style="margin-top:20px;">ဘာသာစကားများ</h2>
+    <div class="lang-grid" id="langGrid">
+      <div class="lang-chip on" data-lang="my">မြန်မာ</div>
+      <div class="lang-chip on" data-lang="en">English</div>
+      <div class="lang-chip" data-lang="zh">中文</div>
+      <div class="lang-chip" data-lang="th">ไทย</div>
+      <div class="lang-chip" data-lang="vi">Tiếng Việt</div>
+    </div>
+
+    <button class="btn block" id="submitBtn">စာတန်းထိုး စတင်မည်</button>
+  </div>
+
+  <!-- STEP 2: STATUS -->
+  <div class="card hidden" id="statusCard">
+    <h2>Progress</h2>
+    <div class="timeline">
+      <div class="fill" id="tlFill" style="width:0%"></div>
+      <div class="head" id="tlHead" style="left:0%"></div>
+    </div>
+    <div class="steps">
+      <span id="stepDownload">Download</span>
+      <span id="stepTranscribe">Transcribe</span>
+      <span id="stepTranslate">Translate</span>
+      <span id="stepReady">Ready</span>
+    </div>
+    <div class="status-line" id="statusLine">…</div>
+  </div>
+
+  <!-- STEP 3: RENDER + PREVIEW -->
+  <div class="card hidden" id="renderCard">
+    <h2>Video ပေါ်တွင် ထိုးမည့်ဘာသာ (Burn-in)</h2>
+    <div class="render-row">
+      <select id="burnLangSelect"></select>
+      <button class="btn" id="renderBtn">Render Preview</button>
+    </div>
+    <div class="render-status" id="renderStatus"></div>
+    <video id="previewVideo" controls></video>
+    <a id="downloadVideoBtn" class="btn ghost block hidden" download>⬇ Video ကို Download လုပ်မည်</a>
+  </div>
+
+  <!-- STEP 4: SRT DOWNLOADS -->
+  <div class="card hidden" id="srtCard">
+    <h2>SRT File များ Download လုပ်ရန်</h2>
+    <div id="srtList"></div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-app.js";
+import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-functions.js";
+import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytesResumable } from "https://www.gstatic.com/firebasejs/10.13.0/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCMiGhiFQQEl3dB2Xdl4LRoTgh7ASPUAcY",
+  authDomain: "drama-translate-tools.firebaseapp.com",
+  projectId: "drama-translate-tools",
+  storageBucket: "drama-translate-tools.firebasestorage.app",
+  messagingSenderId: "106715117200",
+  appId: "1:106715117200:web:fdd9746d168dd6ae94ca15",
+  measurementId: "G-N5C251XSRF",
+};
+
+const app = initializeApp(firebaseConfig);
+const functions = getFunctions(app, "asia-southeast1");
+const db = getFirestore(app);
+const storage = getStorage(app);
+
+const createUploadJob = httpsCallable(functions, "createUploadJob");
+const submitLink = httpsCallable(functions, "submitLink");
+const renderBurnedVideo = httpsCallable(functions, "renderBurnedVideo");
+
+const LANGUAGE_LABELS = { original:"မူရင်း", my:"မြန်မာ", en:"English", zh:"中文", th:"ไทย", vi:"Tiếng Việt" };
+
+let selectedFile = null;
+let activeTab = "file";
+let selectedLangs = new Set(["my","en"]);
+let currentJobId = null;
+
+// --- tabs ---
+document.querySelectorAll(".tab-btn").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+    btn.classList.add("active");
+    activeTab = btn.dataset.tab;
+    document.getElementById("fileTab").classList.toggle("hidden", activeTab!=="file");
+    document.getElementById("linkTab").classList.toggle("hidden", activeTab!=="link");
+  });
+});
+
+// --- file picking ---
+const dropzone = document.getElementById("dropzone");
+const fileInput = document.getElementById("fileInput");
+fileInput.addEventListener("change", e=>{
+  selectedFile = e.target.files[0] || null;
+  document.getElementById("fileNameShow").textContent = selectedFile ? selectedFile.name : "";
+  document.getElementById("fileNameShow").classList.toggle("hidden", !selectedFile);
+});
+["dragover","dragleave","drop"].forEach(evt=>{
+  dropzone.addEventListener(evt, e=>{
+    e.preventDefault();
+    dropzone.classList.toggle("drag", evt==="dragover");
+    if(evt==="drop" && e.dataTransfer.files[0]){
+      selectedFile = e.dataTransfer.files[0];
+      fileInput.files = e.dataTransfer.files;
+      document.getElementById("fileNameShow").textContent = selectedFile.name;
+      document.getElementById("fileNameShow").classList.remove("hidden");
+    }
+  });
+});
+
+// --- language chips ---
+document.querySelectorAll(".lang-chip").forEach(chip=>{
+  chip.addEventListener("click", ()=>{
+    const lang = chip.dataset.lang;
+    if(selectedLangs.has(lang)){ selectedLangs.delete(lang); chip.classList.remove("on"); }
+    else { selectedLangs.add(lang); chip.classList.add("on"); }
+  });
+});
+
+// --- submit ---
+document.getElementById("submitBtn").addEventListener("click", async ()=>{
+  const languages = Array.from(selectedLangs);
+  if(languages.length===0){ alert("ဘာသာစကား အနည်းဆုံး တစ်ခု ရွေးပါ"); return; }
+
+  document.getElementById("submitBtn").disabled = true;
+  document.getElementById("statusCard").classList.remove("hidden");
+
+  try{
+    if(activeTab==="file"){
+      if(!selectedFile){ alert("Video file ရွေးပါ"); return; }
+      setStatus("Video upload လုပ်နေသည်…", 5);
+      const { data } = await createUploadJob({ languages });
+      currentJobId = data.jobId;
+      const storageRef = ref(storage, data.storagePath);
+      const task = uploadBytesResumable(storageRef, selectedFile);
+      task.on("state_changed", snap=>{
+        const pct = (snap.bytesTransferred/snap.totalBytes)*20; // upload = first 20% of bar
+        setStatus(`Video upload လုပ်နေသည်… (${Math.round(snap.bytesTransferred/snap.totalBytes*100)}%)`, pct);
+      });
+      await task;
+      listenToJob(currentJobId);
+    } else {
+      const url = document.getElementById("linkInput").value.trim();
+      if(!url){ alert("Link ထည့်ပါ"); return; }
+      setStatus("Link ကနေ video ဆွဲနေသည်…", 10);
+      const { data } = await submitLink({ url, languages });
+      currentJobId = data.jobId;
+      listenToJob(currentJobId);
+    }
+  } catch(err){
+    setStatus("အမှားတစ်ခု ဖြစ်သွားသည်: " + (err.message||err), 0, true);
+    document.getElementById("submitBtn").disabled = false;
+  }
+});
+
+function setStatus(text, pct, isErr){
+  document.getElementById("statusLine").textContent = text;
+  document.getElementById("statusLine").classList.toggle("err", !!isErr);
+  document.getElementById("tlFill").style.width = pct+"%";
+  document.getElementById("tlHead").style.left = pct+"%";
+}
+
+function markStep(id, done){
+  document.getElementById(id).classList.toggle("done", done);
+}
+
+function listenToJob(jobId){
+  onSnapshot(doc(db, "jobs", jobId), snap=>{
+    if(!snap.exists()) return;
+    const job = snap.data();
+
+    if(job.status==="downloading"){ setStatus("Link ကနေ video ဆွဲနေသည်…", 15); markStep("stepDownload", true); }
+    else if(job.status==="awaiting_upload"){ /* waiting for client upload, no-op */ }
+    else if(job.status==="transcribing"){
+      setStatus("Video ကို Gemini က နားထောင်ပြီး စာသား ထုတ်နေသည်…", 45);
+      markStep("stepDownload", true); markStep("stepTranscribe", true);
+    } else if(job.status==="ready"){
+      setStatus("ပြီးပါပြီ! ဘာသာစကား ရွေးပြီး Video preview render လုပ်ပါ", 100, false);
+      markStep("stepDownload", true); markStep("stepTranscribe", true);
+      markStep("stepTranslate", true); markStep("stepReady", true);
+      showRenderAndSrt(job);
+    } else if(job.status==="error"){
+      setStatus("အမှားဖြစ်သွားသည်: " + (job.error||""), 100, true);
+    }
+  });
+}
+
+function showRenderAndSrt(job){
+  // Burn-in language dropdown
+  const sel = document.getElementById("burnLangSelect");
+  sel.innerHTML = "";
+  job.languages.forEach(code=>{
+    const opt = document.createElement("option");
+    opt.value = code;
+    opt.textContent = LANGUAGE_LABELS[code] || code;
+    sel.appendChild(opt);
+  });
+  document.getElementById("renderCard").classList.remove("hidden");
+
+  document.getElementById("renderBtn").onclick = async ()=>{
+    const langCode = sel.value;
+    document.getElementById("renderBtn").disabled = true;
+    document.getElementById("renderStatus").textContent = "Render လုပ်နေသည်… (10-30 စက္ကန့်ခန့် စောင့်ပါ)";
+    try{
+      const { data } = await renderBurnedVideo({ jobId: currentJobId, langCode });
+      const video = document.getElementById("previewVideo");
+      video.src = data.url;
+      video.style.display = "block";
+      const dl = document.getElementById("downloadVideoBtn");
+      dl.href = data.url;
+      dl.classList.remove("hidden");
+      document.getElementById("renderStatus").textContent = "Render ပြီးပါပြီ ✓";
+    } catch(err){
+      document.getElementById("renderStatus").textContent = "Render မအောင်မြင်ပါ: " + (err.message||err);
+    } finally {
+      document.getElementById("renderBtn").disabled = false;
+    }
+  };
+
+  // SRT downloads with editable filename
+  const srtList = document.getElementById("srtList");
+  srtList.innerHTML = "";
+  Object.keys(job.srt||{}).forEach(code=>{
+    const row = document.createElement("div");
+    row.className = "srt-row";
+    const defaultName = `subtitle_${code}`;
+    row.innerHTML = `
+      <div class="srt-lang">${LANGUAGE_LABELS[code]||code}</div>
+      <input type="text" class="mono" value="${defaultName}" />
+      <button class="btn small">⬇ .srt</button>
+    `;
+    const input = row.querySelector("input");
+    row.querySelector("button").addEventListener("click", ()=>{
+      const blob = new Blob([job.srt[code]], { type: "application/x-subrip;charset=utf-8" });
+      const a = document.createElement("a");
+      let name = input.value.trim() || defaultName;
+      if(!name.toLowerCase().endsWith(".srt")) name += ".srt";
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+    srtList.appendChild(row);
+  });
+  document.getElementById("srtCard").classList.remove("hidden");
+}
+</script>
+</body>
+</html>
